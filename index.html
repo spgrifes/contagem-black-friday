@@ -85,6 +85,11 @@ input.texto:focus,textarea:focus,.grade input:focus{outline:3px solid var(--dour
 .obsl{background:var(--branco);border-left:5px solid var(--dourado);border-radius:10px;padding:10px 14px;margin-bottom:10px}
 .obsl em{color:#666;font-style:normal;font-size:15px}
 .obsl p{margin:4px 0;font-size:17px}
+.setorap{background:var(--branco);border:2px solid var(--linha);border-radius:14px;padding:12px 14px;margin-bottom:12px}
+.setorap .nomes{font-family:var(--titulo);font-weight:800;font-size:18px;margin:8px 0 4px}
+.ritmo{font-size:15px;margin-top:4px}
+.ritmo.bom{color:var(--verde);font-weight:700}
+.ritmo.atraso{color:var(--vermelho);font-weight:800}
 .obsl span{font-size:14px;color:#666}
 @media (prefers-reduced-motion:reduce){.barra i{transition:none}}
 </style>
@@ -127,31 +132,31 @@ input.texto:focus,textarea:focus,.grade input:focus{outline:3px solid var(--dour
       '<div class="topo"><div class="linha1"><span class="marca">SP GRIFES</span></div></div>'+
       '<div class="caixa entrada">'+
       '<span class="selo">BLACK FRIDAY 2026</span>'+
-      '<h1>Mercadoria Black Friday</h1>'+
+      '<h1>Conferência de estoque</h1>'+
       '<p class="dica">Preencha uma vez. Tudo que você salvar fica gravado e aparece para a equipe em qualquer aparelho.</p>'+
       '<label class="campo" for="eu">Seu nome (quem está digitando)</label>'+
       '<input class="texto" id="eu" autocomplete="off" value="'+esc(ler('cn_eu'))+'">'+
-      '<label class="campo" for="par">Nome da sua dupla (só para a conferência)</label>'+
+      '<label class="campo" for="par">Nome da sua dupla (quem está contando)</label>'+
       '<input class="texto" id="par" autocomplete="off" value="'+esc(ler('cn_par'))+'">'+
       '<label class="campo" for="sen">Senha</label>'+
       '<input class="texto" id="sen" type="password" autocomplete="off">'+
       '<button class="botao" id="entrar">Entrar</button>'+
-      '<button class="link" id="areaf">Área do Fábio</button>'+
+      '<button class="link" id="evolta">Voltar</button>'+
       '</div>';
     $('#entrar').onclick = entrar;
-    $('#areaf').onclick = painelEntrada;
+    $('#evolta').onclick = inicio;
     $('#sen').addEventListener('keydown', function(e){ if(e.key==='Enter') entrar(); });
   }
 
   function entrar(){
     S.eu = $('#eu').value.trim(); S.par = $('#par').value.trim(); S.senha = $('#sen').value;
-    if(!S.eu || !S.senha){ aviso('Preencha seu nome e a senha','erro',2600); return; }
+    if(!S.eu || !S.par || !S.senha){ aviso('Preencha seu nome, o da dupla e a senha','erro',2600); return; }
     var b = $('#entrar'); b.disabled = true; b.textContent = 'Entrando...';
     chamar('entrar').then(function(r){
-      S.aberta = !!r.aberta;
+      if(!r.aberta){ aviso('A conferência está encerrada','erro',3000); b.disabled=false; b.textContent='Entrar'; return; }
       guardar('cn_eu',S.eu); guardar('cn_par',S.par);
       S.setores = r.setores || {};
-      inicio();
+      escolherSetor();
     }).catch(function(e){
       b.disabled = false; b.textContent = 'Entrar';
       aviso(e.message==='senha' ? 'Senha errada' : 'Sem conexão. Tente de novo','erro',2800);
@@ -159,34 +164,41 @@ input.texto:focus,textarea:focus,.grade input:focus{outline:3px solid var(--dour
   }
 
 
-  /* ---------- Inicio: duas opcoes ---------- */
+  /* ---------- Inicio: so dois botoes ---------- */
   function topoSimples(extra){
-    return '<div class="topo"><div class="linha1"><span class="marca">SP GRIFES</span><span class="quem">'+esc(S.eu)+(extra||'')+'</span></div></div>';
+    return '<div class="topo"><div class="linha1"><span class="marca">SP GRIFES</span><span class="quem">'+esc(extra||'')+'</span></div></div>';
   }
   function inicio(){
-    app.innerHTML = topoSimples()+'<div class="caixa"><h2>O que você vai fazer?</h2><p class="dica">Escolha uma opção.</p>'+
-      '<button class="setor" id="oconf">Conferência de mercadoria<span>contar o estoque</span></button>'+
+    clearInterval(timerPainel);
+    S.senha=''; S.eu=''; S.par='';
+    app.innerHTML = topoSimples()+'<div class="caixa entrada"><span class="selo">BLACK FRIDAY 2026</span><h1>O que você vai fazer?</h1><p class="dica">Toque em uma opção.</p>'+
+      '<button class="setor" id="oconf">Conferência de estoque<span>contar a mercadoria</span></button>'+
       '<button class="setor" id="osub">Baixa de produto<span>tirar do estoque a peça trocada</span></button>'+
-      '<button class="link" id="osai">Sair</button></div>';
-    $('#oconf').onclick = function(){
-      if(!S.aberta){ aviso('A conferência está encerrada','erro',3000); return; }
-      if(S.par) escolherSetor(); else pedirDupla();
-    };
-    $('#osub').onclick = substituicao;
-    $('#osai').onclick = function(){ S.senha=''; entrada(); };
+      '<button class="link" id="areaf">Área do Fábio</button></div>';
+    $('#oconf').onclick = entrada;
+    $('#osub').onclick = baixaEntrada;
+    $('#areaf').onclick = painelEntrada;
   }
-  function pedirDupla(){
-    app.innerHTML = topoSimples()+'<div class="caixa"><h2>Quem está contando?</h2><p class="dica">Digite o nome da sua dupla (quem conta em voz alta).</p>'+
-      '<input class="texto" id="dpar" autocomplete="off"><button class="botao" id="dok">Continuar</button><button class="link" id="dvolta">Voltar</button></div>';
-    $('#dok').onclick = function(){ var v=$('#dpar').value.trim(); if(!v){ aviso('Digite o nome da dupla','erro',2200); return; } S.par=v; guardar('cn_par',v); escolherSetor(); };
-    $('#dvolta').onclick = inicio;
+  /* ---------- Baixa de produto ---------- */
+  function baixaEntrada(){
+    app.innerHTML = topoSimples()+'<div class="caixa entrada"><span class="selo">BLACK FRIDAY 2026</span><h1>Baixa de produto</h1>'+
+      '<p class="dica">Digite a sua senha pessoal. Ela mostra quem fez a baixa.</p>'+
+      '<label class="campo" for="bsen">Sua senha pessoal</label><input class="texto" id="bsen" type="password" autocomplete="off">'+
+      '<button class="botao" id="bok">Entrar</button><button class="link" id="bvolta0">Voltar</button></div>';
+    $('#bvolta0').onclick = inicio;
+    function ir(){
+      var v=$('#bsen').value; if(!v){ aviso('Digite a sua senha','erro',2200); return; }
+      S.senha=v; var b=$('#bok'); b.disabled=true; b.textContent='Entrando...';
+      chamar('baixa_entrar').then(function(r){ S.eu=r.nome; SB.pedido=''; substituicao(); })
+      .catch(function(e){ S.senha=''; b.disabled=false; b.textContent='Entrar'; aviso(e.message==='senha'?'Senha errada':'Sem conexão. Tente de novo','erro',2800); });
+    }
+    $('#bok').onclick=ir; $('#bsen').addEventListener('keydown',function(e){ if(e.key==='Enter') ir(); });
   }
 
-  /* ---------- Substituicao de produto ---------- */
   var SB = { pedido:'', achados:[], fb:'', sel:null };
   function substituicao(){
-    app.innerHTML = topoSimples(' · Baixa')+'<div class="caixa"><h2>Baixa de produto</h2>'+
-      '<p class="dica">Use quando uma peça sai da prateleira sem venda, para trocar o produto de um pedido. Nunca mexa no estoque dentro da wBuy. Você assina com a sua senha pessoal.</p>'+
+    app.innerHTML = topoSimples(S.eu)+'<div class="caixa"><h2>Baixa de produto</h2>'+
+      '<p class="dica">Use quando uma peça sai da prateleira sem venda, para trocar o produto de um pedido. Nunca mexa no estoque dentro da wBuy. Quem fez a baixa fica registrado pela sua senha.</p>'+
       '<label class="campo" for="bped">Número do pedido</label><input class="texto" id="bped" inputmode="numeric" autocomplete="off" value="'+esc(SB.pedido)+'">'+
       '<label class="campo" for="bbus">Produto que saiu (nome ou cor)</label><input class="texto" id="bbus" autocomplete="off" placeholder="ex.: camiseta hugo boss preta">'+
       '<button class="botao" id="bgo">Procurar</button><div id="bres"></div>'+
@@ -224,9 +236,8 @@ input.texto:focus,textarea:focus,.grade input:focus{outline:3px solid var(--dour
   function escolherTamanhoBaixa(i,k){
     var l=SB.achados[i]; var t=l.t.filter(function(x){return x.k===k;})[0]; SB.sel={l:l,t:t};
     if(!SB.pedido){ aviso('Digite o número do pedido primeiro','erro',2600); window.scrollTo(0,0); return; }
-    app.innerHTML = topoSimples(' · Baixa')+'<div class="caixa"><h2>Confirmar baixa</h2>'+
+    app.innerHTML = topoSimples(S.eu)+'<div class="caixa"><h2>Confirmar baixa</h2>'+
       '<div class="obsl"><b>'+esc(l.p)+'</b> <em>'+esc(l.c)+'</em><p>Tamanho <b>'+esc(t.n)+'</b> · pedido <b>'+esc(SB.pedido)+'</b></p></div>'+
-      '<label class="campo" for="bass">Sua senha pessoal (é a sua assinatura)</label><input class="texto" id="bass" type="password" autocomplete="off">'+
       '<label class="campo" for="bqtd">Quantas peças saíram</label><input class="texto" id="bqtd" inputmode="numeric" value="1">'+
       '<label class="campo" for="bobs">Observação (opcional)</label><div class="obs" style="padding:0"><textarea id="bobs" placeholder="ex.: cliente trocou a cor"></textarea><button class="mic" id="bmic" type="button">Voz</button></div>'+
       '<button class="botao verde" id="bsalva">Dar baixa</button><button class="link" id="bcanc">Cancelar</button></div>';
@@ -234,11 +245,10 @@ input.texto:focus,textarea:focus,.grade input:focus{outline:3px solid var(--dour
     $('#bcanc').onclick=substituicao;
     $('#bsalva').onclick=function(){
       var q=Number($('#bqtd').value); if(!Number.isInteger(q)||q<1){ aviso('Quantidade inválida','erro',2200); return; }
-      var ass=$('#bass').value; if(!ass){ aviso('Digite a sua senha pessoal','erro',2600); return; }
       var btn=this; btn.disabled=true; btn.textContent='Salvando...';
-      chamar('baixa_gravar',{},{assinatura:ass,pedido:SB.pedido,linha_id:l.id,sku:t.k,quantidade:q,observacao:$('#bobs').value}).then(function(r){
+      chamar('baixa_gravar',{},{pedido:SB.pedido,linha_id:l.id,sku:t.k,quantidade:q,observacao:$('#bobs').value}).then(function(r){
         aviso('Baixa registrada por '+(r.nome||''),'bom',3000); SB.sel=null; substituicao();
-      }).catch(function(e){ btn.disabled=false; btn.textContent='Dar baixa'; aviso(e.message==='senha pessoal errada'?'Senha pessoal errada':'Não salvou: '+e.message,'erro',3500); });
+      }).catch(function(e){ btn.disabled=false; btn.textContent='Dar baixa'; aviso('Não salvou: '+e.message,'erro',3500); });
     };
     window.scrollTo(0,0);
   }
@@ -359,7 +369,7 @@ input.texto:focus,textarea:focus,.grade input:focus{outline:3px solid var(--dour
       '<button class="link" id="pvolta">Voltar</button></div>';
     $('#pent').onclick = function(){ S.senhaPainel = $('#psen').value; painel(true); };
     $('#psen').addEventListener('keydown', function(e){ if(e.key==='Enter'){ S.senhaPainel = $('#psen').value; painel(true); } });
-    $('#pvolta').onclick = function(){ clearInterval(timerPainel); entrada(); };
+    $('#pvolta').onclick = function(){ clearInterval(timerPainel); inicio(); };
   }
 
   function barraHtml(rot, f, t){
@@ -370,6 +380,13 @@ input.texto:focus,textarea:focus,.grade input:focus{outline:3px solid var(--dour
     try{ return new Date(iso).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}); }catch(e){ return ''; }
   }
 
+  function histHtml(L){
+    return (L||[]).map(function(x){
+      var dif = (x.contado!=null && x.site!=null) ? x.contado-x.site : 0;
+      var tam = (x.det||[]).map(function(t){ return esc(t.t)+': '+t.c+(t.s!=null?' (site '+t.s+')':''); }).join(' · ');
+      return '<div class="obsl"><b>'+esc(x.produto)+'</b> <em>'+esc(x.cor)+(x.setor?' · setor '+x.setor:'')+'</em><p>Contou: <b>'+esc(x.contador)+(x.parceiro?' e '+esc(x.parceiro):'')+'</b> · '+hora(x.quando)+'</p><p>'+tam+'</p><span>total contado '+x.contado+', site '+x.site+(dif?' · diferença '+(dif>0?'+':'')+dif:'')+'</span></div>';
+    }).join('');
+  }
   function painel(primeira){
     fetch(API+'?'+new URLSearchParams({acao:'painel', senha:S.senhaPainel||''}).toString()).then(function(r){
       return r.json().catch(function(){ return {erro:'rede'}; }).then(function(j){ if(!r.ok) throw new Error(j.erro||'erro'); return j; });
@@ -378,8 +395,24 @@ input.texto:focus,textarea:focus,.grade input:focus{outline:3px solid var(--dour
       (d.setores||[]).forEach(function(s){ tot += s.total; fei += s.feitas; });
       var h = '<div class="topo"><div class="linha1"><span class="marca">SP GRIFES</span><span class="quem">Painel · atualizado '+hora(d.agora)+'</span></div>'+
         '<div class="barra"><i style="width:'+(tot?Math.round(fei*100/tot):0)+'%"></i></div><div class="contador"><b>'+fei+'</b> de '+tot+' produtos ativos contados</div></div>'+
-        '<div class="caixa"><h2>Por setor</h2>';
-      (d.setores||[]).forEach(function(s){ h += barraHtml('Setor '+s.setor, s.feitas, s.total); });
+        '<div class="caixa"><h2>Apuração por setor</h2><p class="dica">Do mais adiantado para o mais atrasado.</p>';
+      var rank = (d.setores||[]).slice().sort(function(a,b){ return (b.total?b.feitas/b.total:0)-(a.total?a.feitas/a.total:0); });
+      var agora = new Date(d.agora).getTime();
+      rank.forEach(function(sx, pos){
+        var ds = (d.duplas_setor||[]).filter(function(x){ return x.setor===sx.setor; }).sort(function(a,b){ return b.linhas-a.linhas; });
+        var nomes = ds.length ? ds.map(function(x){ return esc(x.contador)+(x.parceiro?' e '+esc(x.parceiro):''); }).join(' / ') : 'ninguém começou';
+        var pct = sx.total?Math.round(sx.feitas*100/sx.total):0;
+        h += '<div class="setorap"><div class="pl1"><b>'+(pos+1)+'º · Setor '+sx.setor+'</b><span>'+sx.feitas+' de '+sx.total+' · '+pct+'%</span></div>'+
+          '<div class="pb"><i style="width:'+pct+'%"></i></div><div class="nomes">'+nomes+'</div>';
+        ds.forEach(function(x){
+          var horas = Math.max((new Date(x.ultimo)-new Date(x.primeiro))/3600000, 1/12);
+          var ritmo = Math.round(x.linhas/horas);
+          var parado = Math.round((agora-new Date(x.ultimo).getTime())/60000);
+          var cor = parado>=20 ? 'atraso' : 'bom';
+          h += '<div class="ritmo '+cor+'">'+esc(x.contador)+(x.parceiro?' e '+esc(x.parceiro):'')+': '+x.linhas+' produtos, '+ritmo+' por hora · último salvo há '+(parado<1?'menos de 1':parado)+' min'+(parado>=20?' · PARADO':'')+'</div>';
+        });
+        h += '</div>';
+      });
       h += '<h2 style="margin-top:20px">Zerados e inativos</h2>'+
         barraHtml('Zerados conferidos', d.zerados?d.zerados.feitas:0, d.zerados?d.zerados.total:0)+
         barraHtml('Inativos contados', d.inativos?d.inativos.feitas:0, d.inativos?d.inativos.total:0)+
@@ -393,6 +426,8 @@ input.texto:focus,textarea:focus,.grade input:focus{outline:3px solid var(--dour
       (d.observacoes||[]).forEach(function(o){
         h += '<div class="obsl"><b>'+esc(o.produto)+'</b> <em>'+esc(o.cor)+(o.setor?' · setor '+o.setor:'')+'</em><p>'+esc(o.texto)+'</p><span>'+esc(o.por)+' · '+hora(o.em)+'</span></div>';
       });
+      h += '<h2 style="margin-top:20px">Quem contou cada produto</h2><p class="dica">Os últimos salvos. Procure um produto pelo nome para ver quem contou.</p>'+
+        '<input class="texto" id="hbus" placeholder="ex.: camiseta boss" autocomplete="off"><button class="botao cinza" id="hgo">Procurar produto</button><div id="hres">'+histHtml(d.recentes)+'</div>';
       h += '<h2 style="margin-top:20px">Baixas de produto ('+(d.baixas||[]).length+')</h2><p class="dica">Lançamento automático na wBuy: '+(d.lancamento_ligado?'LIGADO (seg a sex 8h30, 10h30, 12h30, 15h30, 17h30)':'DESLIGADO (as baixas ficam guardadas até você liberar)')+'.</p>';
       if(!(d.baixas||[]).length) h += '<p class="vazio">Nenhuma baixa ainda.</p>';
       (d.baixas||[]).forEach(function(b){
@@ -402,7 +437,9 @@ input.texto:focus,textarea:focus,.grade input:focus{outline:3px solid var(--dour
         '<button class="botao" id="patu">Atualizar agora</button><button class="link" id="psai">Sair do painel</button></div>';
       app.innerHTML = h;
       $('#patu').onclick = function(){ painel(false); };
-      $('#psai').onclick = function(){ clearInterval(timerPainel); entrada(); };
+      $('#hgo').onclick = function(){ var q=$('#hbus').value.trim(); if(q.length<2) return; clearInterval(timerPainel);
+        fetch(API+'?'+new URLSearchParams({acao:'historico_produto',senha:S.senhaPainel||'',q:q}).toString()).then(function(r){return r.json();}).then(function(j){ $('#hres').innerHTML = histHtml(j.itens)||'<p class="vazio">Nada contado com esse nome.</p>'; }); };
+      $('#psai').onclick = function(){ clearInterval(timerPainel); inicio(); };
       clearInterval(timerPainel);
       timerPainel = setInterval(function(){ painel(false); }, 30000);
     }).catch(function(e){
@@ -425,7 +462,7 @@ input.texto:focus,textarea:focus,.grade input:focus{outline:3px solid var(--dour
     try{ rec.start(); }catch(e){ rec = null; btn.classList.remove('gravando'); btn.textContent = 'Voz'; }
   }
 
-  entrada();
+  inicio();
 })();
 </script>
 </body>
