@@ -73,6 +73,19 @@ input.texto:focus,textarea:focus,.grade input:focus{outline:3px solid var(--dour
 .aviso.erro{background:var(--vermelho)}
 .aviso.bom{background:var(--verde)}
 .vazio{text-align:center;color:#666;padding:30px 0}
+.link{display:block;width:100%;margin-top:22px;padding:14px;border:0;background:none;color:#555;font-size:16px;font-weight:800;text-decoration:underline}
+.pl{margin:0 0 14px}
+.pl1{display:flex;justify-content:space-between;gap:10px;font-size:17px;margin-bottom:5px}
+.pl1 span{color:#555;font-size:15px}
+.pb{height:14px;background:#dcdcd7;border-radius:8px;overflow:hidden}
+.pb i{display:block;height:100%;background:var(--dourado);border-right:2px solid var(--preto)}
+.dupla{display:flex;justify-content:space-between;align-items:center;gap:12px;background:var(--branco);border:2px solid var(--linha);border-radius:12px;padding:12px 14px;margin-bottom:8px;font-size:18px}
+.dupla span{display:block;font-size:14px;color:#666;margin-top:2px}
+.dupla strong{font-family:var(--titulo);font-size:24px;color:var(--dourado-escuro)}
+.obsl{background:var(--branco);border-left:5px solid var(--dourado);border-radius:10px;padding:10px 14px;margin-bottom:10px}
+.obsl em{color:#666;font-style:normal;font-size:15px}
+.obsl p{margin:4px 0;font-size:17px}
+.obsl span{font-size:14px;color:#666}
 @media (prefers-reduced-motion:reduce){.barra i{transition:none}}
 </style>
 </head>
@@ -123,8 +136,10 @@ input.texto:focus,textarea:focus,.grade input:focus{outline:3px solid var(--dour
       '<label class="campo" for="sen">Senha</label>'+
       '<input class="texto" id="sen" type="password" autocomplete="off">'+
       '<button class="botao" id="entrar">Entrar</button>'+
+      '<button class="link" id="areaf">Área do Fábio</button>'+
       '</div>';
     $('#entrar').onclick = entrar;
+    $('#areaf').onclick = painelEntrada;
     $('#sen').addEventListener('keydown', function(e){ if(e.key==='Enter') entrar(); });
   }
 
@@ -243,6 +258,65 @@ input.texto:focus,textarea:focus,.grade input:focus{outline:3px solid var(--dour
       c.querySelector('.feito').textContent = 'Confirmado zero';
       btn.disabled = false; atualizarTopo(); aviso('Confirmado zero','bom',1500); proximo(i);
     }).catch(function(){ btn.disabled = false; aviso('NÃO salvou. Toque de novo','erro',5000); });
+  }
+
+  /* ---------- Painel do Fabio (senha propria) ---------- */
+  var timerPainel = null;
+  function painelEntrada(){
+    app.innerHTML =
+      '<div class="topo"><div class="linha1"><span class="marca">SP GRIFES</span><span class="quem">Área do Fábio</span></div></div>'+
+      '<div class="caixa entrada"><h1>Painel da contagem</h1>'+
+      '<p class="dica">Acompanhe de qualquer lugar quem já contou e o que falta.</p>'+
+      '<label class="campo" for="psen">Senha do painel</label>'+
+      '<input class="texto" id="psen" type="password" autocomplete="off">'+
+      '<button class="botao" id="pent">Abrir painel</button>'+
+      '<button class="link" id="pvolta">Voltar</button></div>';
+    $('#pent').onclick = function(){ S.senhaPainel = $('#psen').value; painel(true); };
+    $('#psen').addEventListener('keydown', function(e){ if(e.key==='Enter'){ S.senhaPainel = $('#psen').value; painel(true); } });
+    $('#pvolta').onclick = function(){ clearInterval(timerPainel); entrada(); };
+  }
+
+  function barraHtml(rot, f, t){
+    var p = t ? Math.round(f*100/t) : 0;
+    return '<div class="pl"><div class="pl1"><b>'+esc(rot)+'</b><span>'+f+' de '+t+' · '+p+'%</span></div><div class="pb"><i style="width:'+p+'%"></i></div></div>';
+  }
+  function hora(iso){
+    try{ return new Date(iso).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}); }catch(e){ return ''; }
+  }
+
+  function painel(primeira){
+    fetch(API+'?'+new URLSearchParams({acao:'painel', senha:S.senhaPainel||''}).toString()).then(function(r){
+      return r.json().catch(function(){ return {erro:'rede'}; }).then(function(j){ if(!r.ok) throw new Error(j.erro||'erro'); return j; });
+    }).then(function(d){
+      var tot = 0, fei = 0;
+      (d.setores||[]).forEach(function(s){ tot += s.total; fei += s.feitas; });
+      var h = '<div class="topo"><div class="linha1"><span class="marca">SP GRIFES</span><span class="quem">Painel · atualizado '+hora(d.agora)+'</span></div>'+
+        '<div class="barra"><i style="width:'+(tot?Math.round(fei*100/tot):0)+'%"></i></div><div class="contador"><b>'+fei+'</b> de '+tot+' produtos ativos contados</div></div>'+
+        '<div class="caixa"><h2>Por setor</h2>';
+      (d.setores||[]).forEach(function(s){ h += barraHtml('Setor '+s.setor, s.feitas, s.total); });
+      h += '<h2 style="margin-top:20px">Zerados e inativos</h2>'+
+        barraHtml('Zerados conferidos', d.zerados?d.zerados.feitas:0, d.zerados?d.zerados.total:0)+
+        barraHtml('Inativos contados', d.inativos?d.inativos.feitas:0, d.inativos?d.inativos.total:0)+
+        '<h2 style="margin-top:20px">Duplas</h2>';
+      if(!(d.duplas||[]).length) h += '<p class="vazio">Ainda ninguém salvou nada.</p>';
+      (d.duplas||[]).forEach(function(x){
+        h += '<div class="dupla"><div><b>'+esc(x.contador)+'</b> + '+esc(x.parceiro||'-')+'<span>último salvo '+hora(x.ultimo)+'</span></div><strong>'+x.linhas+'</strong></div>';
+      });
+      h += '<h2 style="margin-top:20px">Observações ('+(d.obs||0)+')</h2>';
+      if(!(d.observacoes||[]).length) h += '<p class="vazio">Nenhuma observação ainda.</p>';
+      (d.observacoes||[]).forEach(function(o){
+        h += '<div class="obsl"><b>'+esc(o.produto)+'</b> <em>'+esc(o.cor)+(o.setor?' · setor '+o.setor:'')+'</em><p>'+esc(o.texto)+'</p><span>'+esc(o.por)+' · '+hora(o.em)+'</span></div>';
+      });
+      h += '<p class="dica" style="margin-top:18px">Total de números gravados: '+(d.total_registros||0)+'. A tela se atualiza sozinha a cada 30 segundos.</p>'+
+        '<button class="botao" id="patu">Atualizar agora</button><button class="link" id="psai">Sair do painel</button></div>';
+      app.innerHTML = h;
+      $('#patu').onclick = function(){ painel(false); };
+      $('#psai').onclick = function(){ clearInterval(timerPainel); entrada(); };
+      clearInterval(timerPainel);
+      timerPainel = setInterval(function(){ painel(false); }, 30000);
+    }).catch(function(e){
+      if(primeira){ aviso(e.message==='senha' ? 'Senha do painel errada' : 'Sem conexão. Tente de novo','erro',3000); }
+    });
   }
 
   /* ---------- Voz na observacao (quando o aparelho permite) ---------- */
