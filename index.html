@@ -127,11 +127,11 @@ input.texto:focus,textarea:focus,.grade input:focus{outline:3px solid var(--dour
       '<div class="topo"><div class="linha1"><span class="marca">SP GRIFES</span></div></div>'+
       '<div class="caixa entrada">'+
       '<span class="selo">BLACK FRIDAY 2026</span>'+
-      '<h1>Contagem de Mercadoria</h1>'+
+      '<h1>Mercadoria Black Friday</h1>'+
       '<p class="dica">Preencha uma vez. Tudo que você salvar fica gravado e aparece para a equipe em qualquer aparelho.</p>'+
       '<label class="campo" for="eu">Seu nome (quem está digitando)</label>'+
       '<input class="texto" id="eu" autocomplete="off" value="'+esc(ler('cn_eu'))+'">'+
-      '<label class="campo" for="par">Nome da sua dupla (quem está contando)</label>'+
+      '<label class="campo" for="par">Nome da sua dupla (só para a conferência)</label>'+
       '<input class="texto" id="par" autocomplete="off" value="'+esc(ler('cn_par'))+'">'+
       '<label class="campo" for="sen">Senha</label>'+
       '<input class="texto" id="sen" type="password" autocomplete="off">'+
@@ -145,17 +145,100 @@ input.texto:focus,textarea:focus,.grade input:focus{outline:3px solid var(--dour
 
   function entrar(){
     S.eu = $('#eu').value.trim(); S.par = $('#par').value.trim(); S.senha = $('#sen').value;
-    if(!S.eu || !S.par || !S.senha){ aviso('Preencha seu nome, o da dupla e a senha','erro',2600); return; }
+    if(!S.eu || !S.senha){ aviso('Preencha seu nome e a senha','erro',2600); return; }
     var b = $('#entrar'); b.disabled = true; b.textContent = 'Entrando...';
     chamar('entrar').then(function(r){
-      if(!r.aberta){ aviso('A contagem está encerrada','erro',3000); b.disabled=false; b.textContent='Entrar'; return; }
+      S.aberta = !!r.aberta;
       guardar('cn_eu',S.eu); guardar('cn_par',S.par);
       S.setores = r.setores || {};
-      escolherSetor();
+      inicio();
     }).catch(function(e){
       b.disabled = false; b.textContent = 'Entrar';
       aviso(e.message==='senha' ? 'Senha errada' : 'Sem conexão. Tente de novo','erro',2800);
     });
+  }
+
+
+  /* ---------- Inicio: duas opcoes ---------- */
+  function topoSimples(extra){
+    return '<div class="topo"><div class="linha1"><span class="marca">SP GRIFES</span><span class="quem">'+esc(S.eu)+(extra||'')+'</span></div></div>';
+  }
+  function inicio(){
+    app.innerHTML = topoSimples()+'<div class="caixa"><h2>O que você vai fazer?</h2><p class="dica">Escolha uma opção.</p>'+
+      '<button class="setor" id="oconf">Conferência de mercadoria<span>contar o estoque</span></button>'+
+      '<button class="setor" id="osub">Substituição de produto<span>dar baixa na peça trocada</span></button>'+
+      '<button class="link" id="osai">Sair</button></div>';
+    $('#oconf').onclick = function(){
+      if(!S.aberta){ aviso('A conferência está encerrada','erro',3000); return; }
+      if(S.par) escolherSetor(); else pedirDupla();
+    };
+    $('#osub').onclick = substituicao;
+    $('#osai').onclick = function(){ S.senha=''; entrada(); };
+  }
+  function pedirDupla(){
+    app.innerHTML = topoSimples()+'<div class="caixa"><h2>Quem está contando?</h2><p class="dica">Digite o nome da sua dupla (quem conta em voz alta).</p>'+
+      '<input class="texto" id="dpar" autocomplete="off"><button class="botao" id="dok">Continuar</button><button class="link" id="dvolta">Voltar</button></div>';
+    $('#dok').onclick = function(){ var v=$('#dpar').value.trim(); if(!v){ aviso('Digite o nome da dupla','erro',2200); return; } S.par=v; guardar('cn_par',v); escolherSetor(); };
+    $('#dvolta').onclick = inicio;
+  }
+
+  /* ---------- Substituicao de produto ---------- */
+  var SB = { pedido:'', achados:[], fb:'', sel:null };
+  function substituicao(){
+    app.innerHTML = topoSimples(' · Substituição')+'<div class="caixa"><h2>Substituição de produto</h2>'+
+      '<p class="dica">Use quando uma peça sai da prateleira sem venda, para trocar o produto de um pedido. Nunca mexa no estoque dentro da wBuy.</p>'+
+      '<label class="campo" for="bped">Número do pedido</label><input class="texto" id="bped" inputmode="numeric" autocomplete="off" value="'+esc(SB.pedido)+'">'+
+      '<label class="campo" for="bbus">Produto que saiu (nome ou cor)</label><input class="texto" id="bbus" autocomplete="off" placeholder="ex.: camiseta hugo boss preta">'+
+      '<button class="botao" id="bgo">Procurar</button><div id="bres"></div>'+
+      '<h2 style="margin-top:26px">Últimas baixas</h2><div id="bhist"><p class="vazio">Carregando...</p></div>'+
+      '<button class="link" id="bvolta">Voltar</button></div>';
+    $('#bvolta').onclick = inicio;
+    $('#bgo').onclick = procurarBaixa;
+    $('#bbus').addEventListener('keydown', function(e){ if(e.key==='Enter') procurarBaixa(); });
+    $('#bped').addEventListener('input', function(){ SB.pedido = this.value.trim(); });
+    historicoBaixas();
+  }
+  function historicoBaixas(){
+    chamar('baixa_lista').then(function(r){
+      var h=''; (r.baixas||[]).forEach(function(b){
+        h += '<div class="obsl"><b>'+esc(b.produto)+'</b> <em>'+esc(b.cor)+' · '+esc(b.tamanho)+' · '+b.quantidade+' un.</em><p>Pedido '+esc(b.pedido)+' · '+esc(b.nome)+'</p><span>'+hora(b.criado_em)+' · '+(b.status==='lancada'?'já lançada no site':b.status==='erro'?'erro, o Fábio vai ver':'aguardando o próximo horário')+'</span></div>';
+      });
+      var el=$('#bhist'); if(el) el.innerHTML = h || '<p class="vazio">Nenhuma baixa ainda.</p>';
+    }).catch(function(){ var el=$('#bhist'); if(el) el.innerHTML='<p class="vazio">Não consegui carregar.</p>'; });
+  }
+  function procurarBaixa(){
+    var q=$('#bbus').value.trim(); if(q.length<2){ aviso('Digite pelo menos 2 letras','erro',2200); return; }
+    $('#bres').innerHTML='<p class="vazio">Procurando...</p>';
+    chamar('baixa_buscar',{q:q}).then(function(r){
+      SB.achados=r.linhas||[]; SB.fb=r.foto_base||'';
+      var h=''; if(!SB.achados.length) h='<p class="vazio">Não achei. Tente outra palavra.</p>';
+      SB.achados.forEach(function(l,i){
+        var foto = l.f ? '<img class="foto" alt="" src="'+esc(SB.fb+encodeURIComponent(l.f))+'" loading="lazy">' : '<div class="foto">sem foto</div>';
+        h += '<div class="cartao" style="margin-top:14px">'+foto+'<div class="nome">'+esc(l.p)+'</div><div class="cor">'+esc(l.c)+'</div><div class="grade">'+
+          l.t.map(function(t){ return '<button class="botao cinza" style="margin:0;padding:12px 0" data-i="'+i+'" data-k="'+esc(t.k)+'">'+esc(t.n)+'</button>'; }).join('')+'</div></div>';
+      });
+      $('#bres').innerHTML=h;
+      document.querySelectorAll('#bres .grade button').forEach(function(b){ b.onclick=function(){ escolherTamanhoBaixa(Number(b.dataset.i), b.dataset.k); }; });
+    }).catch(function(){ $('#bres').innerHTML='<p class="vazio">Sem conexão. Tente de novo.</p>'; });
+  }
+  function escolherTamanhoBaixa(i,k){
+    var l=SB.achados[i]; var t=l.t.filter(function(x){return x.k===k;})[0]; SB.sel={l:l,t:t};
+    if(!SB.pedido){ aviso('Digite o número do pedido primeiro','erro',2600); window.scrollTo(0,0); return; }
+    app.innerHTML = topoSimples(' · Substituição')+'<div class="caixa"><h2>Confirmar baixa</h2>'+
+      '<div class="obsl"><b>'+esc(l.p)+'</b> <em>'+esc(l.c)+'</em><p>Tamanho <b>'+esc(t.n)+'</b> · pedido <b>'+esc(SB.pedido)+'</b></p></div>'+
+      '<label class="campo" for="bqtd">Quantas peças saíram</label><input class="texto" id="bqtd" inputmode="numeric" value="1">'+
+      '<label class="campo" for="bobs">Observação (opcional)</label><div class="obs" style="padding:0"><textarea id="bobs" placeholder="ex.: cliente trocou a cor"></textarea><button class="mic" id="bmic" type="button">Voz</button></div>'+
+      '<button class="botao verde" id="bsalva">Dar baixa</button><button class="link" id="bcanc">Cancelar</button></div>';
+    $('#bmic').onclick=function(){ ditar(this); };
+    $('#bcanc').onclick=substituicao;
+    $('#bsalva').onclick=function(){
+      var q=Number($('#bqtd').value); if(!Number.isInteger(q)||q<1){ aviso('Quantidade inválida','erro',2200); return; }
+      var btn=this; btn.disabled=true; btn.textContent='Salvando...';
+      chamar('baixa_gravar',{},{nome:S.eu,pedido:SB.pedido,linha_id:l.id,sku:t.k,quantidade:q,observacao:$('#bobs').value}).then(function(){
+        aviso('Baixa registrada','bom',2500); SB.sel=null; substituicao();
+      }).catch(function(e){ btn.disabled=false; btn.textContent='Dar baixa'; aviso('Não salvou: '+e.message,'erro',3500); });
+    };
+    window.scrollTo(0,0);
   }
 
   /* ---------- Setor ---------- */
@@ -163,9 +246,10 @@ input.texto:focus,textarea:focus,.grade input:focus{outline:3px solid var(--dour
     var h = '<div class="topo"><div class="linha1"><span class="marca">SP GRIFES</span><span class="quem">'+esc(S.eu)+' + '+esc(S.par)+'</span></div></div><div class="caixa">'+
       '<h2>Escolha o seu setor</h2><p class="dica">Cada dupla pega um setor diferente. Combine com a equipe antes de tocar.</p>';
     for(var s=1;s<=4;s++){ h += '<button class="setor" data-s="'+s+'">Setor '+s+'<span>'+(S.setores[s]||0)+' produtos</span></button>'; }
-    h += '<button class="setor" data-s="0" style="border-color:#bbb">Ver todos<span>sem filtro</span></button></div>';
+    h += '<button class="setor" data-s="0" style="border-color:#bbb">Ver todos<span>sem filtro</span></button><button class="link" id="svolta">Voltar</button></div>';
     app.innerHTML = h;
-    app.querySelectorAll('.setor').forEach(function(b){ b.onclick = function(){ S.setor = Number(b.dataset.s); carregar('contar'); }; });
+    $('#svolta').onclick = inicio;
+    app.querySelectorAll('button.setor').forEach(function(b){ b.onclick = function(){ S.setor = Number(b.dataset.s); carregar('contar'); }; });
   }
 
   /* ---------- Lista ---------- */
@@ -306,6 +390,11 @@ input.texto:focus,textarea:focus,.grade input:focus{outline:3px solid var(--dour
       if(!(d.observacoes||[]).length) h += '<p class="vazio">Nenhuma observação ainda.</p>';
       (d.observacoes||[]).forEach(function(o){
         h += '<div class="obsl"><b>'+esc(o.produto)+'</b> <em>'+esc(o.cor)+(o.setor?' · setor '+o.setor:'')+'</em><p>'+esc(o.texto)+'</p><span>'+esc(o.por)+' · '+hora(o.em)+'</span></div>';
+      });
+      h += '<h2 style="margin-top:20px">Baixas por substituição ('+(d.baixas||[]).length+')</h2><p class="dica">Lançamento automático na wBuy: '+(d.lancamento_ligado?'LIGADO (seg a sex 8h30, 10h30, 12h30, 15h30, 17h30)':'DESLIGADO (as baixas ficam guardadas até você liberar)')+'.</p>';
+      if(!(d.baixas||[]).length) h += '<p class="vazio">Nenhuma baixa ainda.</p>';
+      (d.baixas||[]).forEach(function(b){
+        h += '<div class="obsl"><b>'+esc(b.produto)+'</b> <em>'+esc(b.cor)+' · '+esc(b.tamanho)+' · '+b.quantidade+' un.</em><p>Pedido '+esc(b.pedido)+' · '+esc(b.nome)+(b.observacao?' · '+esc(b.observacao):'')+'</p><span>'+hora(b.criado_em)+' · '+(b.status==='lancada'?'lançada: '+b.antes+' para '+b.depois:b.status==='erro'?'ERRO: '+esc(b.erro||''):'pendente')+'</span></div>';
       });
       h += '<p class="dica" style="margin-top:18px">Total de números gravados: '+(d.total_registros||0)+'. A tela se atualiza sozinha a cada 30 segundos.</p>'+
         '<button class="botao" id="patu">Atualizar agora</button><button class="link" id="psai">Sair do painel</button></div>';
