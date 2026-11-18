@@ -3,10 +3,12 @@
 (async function(){
   var r=document.getElementById('r');
   try{
-    var j=JSON.parse(window.name||'{}'); window.name='';
-    if(!j.d||!j.t){ r.textContent='sem dados'; return; }
-    var b=await (await fetch(j.d)).blob();
-    var x=await fetch('https://cuiqmczhtcrrxafmzmhh.supabase.co/functions/v1/pagina-subir',{method:'POST',headers:{'x-token':j.t,'x-nome':j.n||'desktop','Content-Type':b.type},body:b});
+    var h=location.hash.slice(1); history.replaceState(null,'',location.pathname);
+    var i=h.indexOf('&d='); var p=new URLSearchParams(h.slice(0,i)); var d=h.slice(i+3);
+    var t=p.get('t'), n=p.get('n')||'desktop';
+    if(!d||!t){ r.textContent='sem dados'; return; }
+    var b=await (await fetch(d)).blob();
+    var x=await fetch('https://cuiqmczhtcrrxafmzmhh.supabase.co/functions/v1/pagina-subir',{method:'POST',headers:{'x-token':t,'x-nome':n,'Content-Type':b.type},body:b});
     r.textContent='RESULTADO '+x.status+' '+(await x.text());
   }catch(e){ r.textContent='ERRO '+e.message; }
 })();
