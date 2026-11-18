@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Contagem de Mercadoria Black Friday</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Nunito+Sans:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+/* Identidade SP Grifes: preto, dourado e branco. Layout: uma coluna de cartoes grandes, pensada para celular. */
+:root{
+  --preto:#111111;
+  --dourado:#f5c518;
+  --dourado-escuro:#a67c00;
+  --branco:#ffffff;
+  --cinza:#f3f3f1;
+  --linha:#e2e2de;
+  --verde:#1f8a46;
+  --vermelho:#c62828;
+  --titulo:'Montserrat',system-ui,Arial,sans-serif;
+  --corpo:'Nunito Sans',system-ui,Arial,sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--cinza);color:var(--preto);font-family:var(--corpo);font-size:18px;line-height:1.35}
+button,input,textarea{font-family:inherit}
+.topo{position:sticky;top:0;z-index:20;background:var(--preto);color:var(--branco);padding:10px 16px;border-bottom:3px solid var(--dourado)}
+.topo .linha1{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.marca{font-family:var(--titulo);font-weight:800;letter-spacing:.06em;color:var(--dourado);font-size:17px}
+.quem{font-size:15px;color:#d8d8d8;text-align:right}
+.barra{height:8px;background:#3a3a3a;border-radius:6px;margin-top:8px;overflow:hidden}
+.barra i{display:block;height:100%;background:var(--dourado);width:0;transition:width .3s}
+.contador{font-size:15px;margin-top:5px;color:#e8e8e8}
+.contador b{color:var(--dourado)}
+.abas{display:flex;gap:8px;padding:10px 16px;background:var(--branco);border-bottom:1px solid var(--linha);overflow-x:auto}
+.abas button{flex:1;min-width:92px;padding:12px 8px;border:2px solid var(--preto);background:var(--branco);color:var(--preto);border-radius:12px;font-weight:800;font-size:16px}
+.abas button.on{background:var(--preto);color:var(--dourado)}
+.caixa{max-width:560px;margin:0 auto;padding:16px}
+h1,h2{font-family:var(--titulo);margin:0 0 6px;line-height:1.15}
+h1{font-size:25px}
+h2{font-size:21px}
+.dica{font-size:16px;color:#555;margin:0 0 14px}
+.entrada{padding-top:28px}
+.entrada .selo{display:inline-block;background:var(--dourado);color:var(--preto);font-family:var(--titulo);font-weight:800;font-size:13px;letter-spacing:.08em;padding:5px 10px;border-radius:6px;margin-bottom:12px}
+label.campo{display:block;font-weight:800;font-size:16px;margin:14px 0 4px}
+input.texto{width:100%;font-size:21px;padding:14px;border:2px solid #bdbdb8;border-radius:12px;background:var(--branco)}
+input.texto:focus,textarea:focus,.grade input:focus{outline:3px solid var(--dourado);border-color:var(--preto)}
+.botao{display:block;width:100%;border:0;border-radius:14px;padding:17px;font-size:20px;font-weight:800;font-family:var(--titulo);background:var(--preto);color:var(--dourado);margin-top:16px}
+.botao.verde{background:var(--verde);color:var(--branco);margin-top:6px}
+.botao.cinza{background:#6b6b6b;color:var(--branco);margin-top:6px}
+.botao:disabled{opacity:.55}
+.setor{display:flex;justify-content:space-between;align-items:center;width:100%;margin:10px 0;padding:20px 18px;border:0;border-radius:14px;background:var(--branco);border:2px solid var(--preto);font-size:22px;font-weight:800;font-family:var(--titulo);color:var(--preto);text-align:left}
+.setor span{font-family:var(--corpo);font-size:16px;font-weight:700;color:#555}
+.setor:active{background:var(--dourado)}
+.bloco{margin:22px 0 10px;padding:10px 14px;background:var(--preto);color:var(--dourado);border-radius:10px;font-family:var(--titulo);font-weight:700;font-size:16px}
+.cartao{background:var(--branco);border:3px solid var(--linha);border-radius:18px;overflow:hidden;margin-bottom:20px}
+.cartao.ok{border-color:var(--verde)}
+.foto{width:100%;aspect-ratio:1/1;object-fit:contain;background:#fafaf8;display:flex;align-items:center;justify-content:center;color:#999;font-size:16px}
+.nome{padding:12px 14px 0;font-family:var(--titulo);font-size:20px;font-weight:700;line-height:1.2}
+.cor{padding:4px 14px 10px;font-size:22px;font-weight:800;color:var(--dourado-escuro)}
+.grade{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:0 14px 12px}
+.grade label{display:block;text-align:center;font-weight:800;font-size:18px;margin-bottom:4px}
+.grade input{width:100%;font-size:30px;font-weight:800;text-align:center;padding:12px 0;border:2px solid #bdbdb8;border-radius:12px;background:var(--branco)}
+.site{display:block;text-align:center;font-size:13px;color:#777;margin-top:3px}
+.obs{display:flex;gap:8px;padding:0 14px 12px}
+.obs textarea{flex:1;border:2px solid #d0d0cb;border-radius:12px;padding:10px;font-size:17px;resize:vertical;min-height:48px}
+.obs .mic{width:54px;border:2px solid var(--preto);background:var(--branco);border-radius:12px;font-weight:800;font-size:13px}
+.obs .mic.gravando{background:var(--vermelho);color:var(--branco);border-color:var(--vermelho)}
+.cartao .botao{margin:0 14px 14px;width:calc(100% - 28px)}
+.feito{padding:0 14px 8px;font-size:15px;font-weight:800;color:var(--verde)}
+.aviso{position:fixed;left:14px;right:14px;bottom:16px;z-index:50;padding:16px;border-radius:14px;text-align:center;font-size:18px;font-weight:800;background:var(--preto);color:var(--branco);display:none;box-shadow:0 6px 20px rgba(0,0,0,.3)}
+.aviso.erro{background:var(--vermelho)}
+.aviso.bom{background:var(--verde)}
+.vazio{text-align:center;color:#666;padding:30px 0}
+@media (prefers-reduced-motion:reduce){.barra i{transition:none}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div class="aviso" id="aviso" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+  var API = 'https://cuiqmczhtcrrxafmzmhh.supabase.co/functions/v1/contagem';
+  var S = { senha:'', eu:'', par:'', modo:'contar', setor:0, linhas:[], fb:'', setores:{} };
+  var app = document.getElementById('app');
+
+  function $(s,r){ return (r||document).querySelector(s); }
+  function esc(t){ return String(t==null?'':t).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+  function guardar(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
+  function ler(k){ try{ return localStorage.getItem(k)||''; }catch(e){ return ''; } }
+
+  var tAviso;
+  function aviso(txt, tipo, ms){
+    var a = $('#aviso'); a.textContent = txt; a.className = 'aviso' + (tipo? ' '+tipo : ''); a.style.display = 'block';
+    clearTimeout(tAviso); tAviso = setTimeout(function(){ a.style.display='none'; }, ms||2000);
+  }
+
+  function chamar(acao, extra, corpo){
+    var q = new URLSearchParams(Object.assign({acao:acao, senha:S.senha}, extra||{}));
+    var opt = corpo ? { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(Object.assign({senha:S.senha}, corpo)) } : {};
+    return fetch(API+'?'+q.toString(), opt).then(function(r){
+      return r.json().catch(function(){ return {erro:'rede'}; }).then(function(j){
+        if(!r.ok) throw new Error(j.erro||'erro');
+        return j;
+      });
+    });
+  }
+
+  /* ---------- Entrada ---------- */
+  function entrada(){
+    app.innerHTML =
+      '<div class="topo"><div class="linha1"><span class="marca">SP GRIFES</span></div></div>'+
+      '<div class="caixa entrada">'+
+      '<span class="selo">BLACK FRIDAY 2026</span>'+
+      '<h1>Contagem de Mercadoria</h1>'+
+      '<p class="dica">Preencha uma vez. Tudo que você salvar fica gravado e aparece para a equipe em qualquer aparelho.</p>'+
+      '<label class="campo" for="eu">Seu nome (quem está digitando)</label>'+
+      '<input class="texto" id="eu" autocomplete="off" value="'+esc(ler('cn_eu'))+'">'+
+      '<label class="campo" for="par">Nome da sua dupla (quem está contando)</label>'+
+      '<input class="texto" id="par" autocomplete="off" value="'+esc(ler('cn_par'))+'">'+
+      '<label class="campo" for="sen">Senha</label>'+
+      '<input class="texto" id="sen" type="password" autocomplete="off">'+
+      '<button class="botao" id="entrar">Entrar</button>'+
+      '</div>';
+    $('#entrar').onclick = entrar;
+    $('#sen').addEventListener('keydown', function(e){ if(e.key==='Enter') entrar(); });
+  }
+
+  function entrar(){
+    S.eu = $('#eu').value.trim(); S.par = $('#par').value.trim(); S.senha = $('#sen').value;
+    if(!S.eu || !S.par || !S.senha){ aviso('Preencha seu nome, o da dupla e a senha','erro',2600); return; }
+    var b = $('#entrar'); b.disabled = true; b.textContent = 'Entrando...';
+    chamar('entrar').then(function(r){
+      if(!r.aberta){ aviso('A contagem está encerrada','erro',3000); b.disabled=false; b.textContent='Entrar'; return; }
+      guardar('cn_eu',S.eu); guardar('cn_par',S.par);
+      S.setores = r.setores || {};
+      escolherSetor();
+    }).catch(function(e){
+      b.disabled = false; b.textContent = 'Entrar';
+      aviso(e.message==='senha' ? 'Senha errada' : 'Sem conexão. Tente de novo','erro',2800);
+    });
+  }
+
+  /* ---------- Setor ---------- */
+  function escolherSetor(){
+    var h = '<div class="topo"><div class="linha1"><span class="marca">SP GRIFES</span><span class="quem">'+esc(S.eu)+' + '+esc(S.par)+'</span></div></div><div class="caixa">'+
+      '<h2>Escolha o seu setor</h2><p class="dica">Cada dupla pega um setor diferente. Combine com a equipe antes de tocar.</p>';
+    for(var s=1;s<=4;s++){ h += '<button class="setor" data-s="'+s+'">Setor '+s+'<span>'+(S.setores[s]||0)+' produtos</span></button>'; }
+    h += '<button class="setor" data-s="0" style="border-color:#bbb">Ver todos<span>sem filtro</span></button></div>';
+    app.innerHTML = h;
+    app.querySelectorAll('.setor').forEach(function(b){ b.onclick = function(){ S.setor = Number(b.dataset.s); carregar('contar'); }; });
+  }
+
+  /* ---------- Lista ---------- */
+  function carregar(modo){
+    S.modo = modo;
+    app.innerHTML = '<div class="caixa"><p class="vazio">Carregando produtos...</p></div>';
+    chamar('lista',{modo:modo, setor:S.setor}).then(function(r){
+      S.linhas = r.linhas || []; S.fb = r.foto_base || ''; tela();
+    }).catch(function(){
+      app.innerHTML = '<div class="caixa"><p class="vazio">Não consegui carregar.</p><button class="botao" id="tentar">Tentar de novo</button></div>';
+      $('#tentar').onclick = function(){ carregar(modo); };
+    });
+  }
+
+  function feitos(){ return S.linhas.filter(function(l){ return l.feito || l.zok; }).length; }
+
+  function atualizarTopo(){
+    var f = feitos(), t = S.linhas.length;
+    var c = $('#cont'); if(c) c.innerHTML = '<b>'+f+'</b> de '+t+' contados';
+    var b = $('#prog'); if(b) b.style.width = (t? Math.round(f*100/t) : 0)+'%';
+  }
+
+  function tela(){
+    var L = S.linhas, f = feitos();
+    var h = '<div class="topo"><div class="linha1"><span class="marca">SP GRIFES</span><span class="quem">'+esc(S.eu)+' + '+esc(S.par)+(S.setor&&S.modo==='contar'?' · Setor '+S.setor:'')+'</span></div>'+
+      '<div class="barra"><i id="prog" style="width:'+(L.length?Math.round(f*100/L.length):0)+'%"></i></div><div class="contador" id="cont"><b>'+f+'</b> de '+L.length+' contados</div></div>'+
+      '<div class="abas">'+
+      ab('contar','Contar')+ab('zerados','Zerados')+ab('inativos','Inativos')+'<button id="trocar">Setor</button></div><div class="caixa">';
+    if(S.modo==='zerados') h += '<p class="dica">O site mostra zero nestes produtos. Se achar peça, digite a quantidade. Se está zerado mesmo, toque em Confirmado zero.</p>';
+    if(S.modo==='inativos') h += '<p class="dica">Produtos escondidos do site. Conte se achar peça.</p>';
+    if(!L.length) h += '<p class="vazio">Nenhum produto nesta lista.</p>';
+    var ult = '';
+    L.forEach(function(l,i){
+      if(S.modo==='contar' && l.b && l.b!==ult){ h += '<div class="bloco">'+esc(l.b)+'</div>'; ult = l.b; }
+      var foto = l.f ? '<img class="foto" loading="lazy" alt="" src="'+esc(S.fb+encodeURIComponent(l.f))+'">' : '<div class="foto">sem foto</div>';
+      var grade = l.t.map(function(t){
+        var v = (l.feito && l.feito.q && l.feito.q[t.k]!=null) ? l.feito.q[t.k] : '';
+        return '<div><label for="q'+i+'_'+esc(t.k)+'">'+esc(t.n)+'</label><input id="q'+i+'_'+esc(t.k)+'" inputmode="numeric" pattern="[0-9]*" data-k="'+esc(t.k)+'" value="'+esc(v)+'"></div>';
+      }).join('');
+      h += '<div class="cartao'+((l.feito||l.zok)?' ok':'')+'" id="c'+i+'">'+foto+
+        '<div class="nome">'+esc(l.p)+'</div><div class="cor">'+esc(l.c)+'</div>'+
+        '<div class="grade">'+grade+'</div>'+
+        '<div class="obs"><textarea rows="1" placeholder="Observação: tamanho que falta, defeito, foto diferente">'+esc(l.obs||'')+'</textarea>'+
+        '<button class="mic" type="button" aria-label="Falar a observação">Voz</button></div>'+
+        '<div class="feito">'+(l.feito?'Salvo por '+esc(l.feito.por):(l.zok?'Confirmado zero':''))+'</div>'+
+        (S.modo==='zerados'?'<button class="botao cinza" data-a="zero" data-i="'+i+'">Confirmado zero</button>':'')+
+        '<button class="botao verde" data-a="salvar" data-i="'+i+'">Salvar e próximo</button></div>';
+    });
+    h += '</div>';
+    app.innerHTML = h;
+    app.querySelectorAll('.abas button[data-m]').forEach(function(b){ b.onclick = function(){ carregar(b.dataset.m); }; });
+    $('#trocar').onclick = escolherSetor;
+    app.querySelectorAll('button[data-a]').forEach(function(b){
+      b.onclick = function(){ var i = Number(b.dataset.i); if(b.dataset.a==='salvar') salvar(i,b); else zero(i,b); };
+    });
+    app.querySelectorAll('.mic').forEach(function(b){ b.onclick = function(){ ditar(b); }; });
+  }
+  function ab(m,t){ return '<button data-m="'+m+'" class="'+(S.modo===m?'on':'')+'">'+t+'</button>'; }
+
+  function proximo(i){ var nx = document.getElementById('c'+(i+1)); if(nx) nx.scrollIntoView({behavior:'smooth',block:'start'}); }
+
+  function salvar(i, btn){
+    var c = document.getElementById('c'+i), qtd = {}, vazio = 0, ruim = false;
+    c.querySelectorAll('.grade input').forEach(function(x){
+      var v = x.value.trim();
+      if(v===''){ vazio++; return; }
+      if(!/^\d{1,5}$/.test(v)){ ruim = true; x.style.borderColor = '#c62828'; return; }
+      x.style.borderColor = ''; qtd[x.dataset.k] = v;
+    });
+    if(ruim){ aviso('Use só números inteiros nos tamanhos','erro',2800); return; }
+    if(!Object.keys(qtd).length){ aviso('Digite ao menos um número (0 se não tem)','erro',2800); return; }
+    btn.disabled = true; btn.textContent = 'Salvando...';
+    chamar('gravar',{},{contador:S.eu, parceiro:S.par, linha_id:S.linhas[i].id, qtd:qtd, obs:c.querySelector('textarea').value}).then(function(){
+      c.classList.add('ok'); S.linhas[i].feito = {q:qtd, por:S.eu};
+      c.querySelector('.feito').textContent = 'Salvo por '+S.eu;
+      btn.disabled = false; btn.textContent = 'Salvar e próximo';
+      atualizarTopo();
+      aviso(vazio? 'Salvo. Tamanhos em branco não mudam no site' : 'Salvo','bom',1800);
+      proximo(i);
+    }).catch(function(e){
+      btn.disabled = false; btn.textContent = 'Salvar e próximo';
+      aviso('NÃO salvou: '+(e.message==='senha'?'senha':'sem conexão')+'. Toque em salvar de novo','erro',5000);
+    });
+  }
+
+  function zero(i, btn){
+    btn.disabled = true;
+    chamar('zero_ok',{},{contador:S.eu, linha_id:S.linhas[i].id}).then(function(){
+      var c = document.getElementById('c'+i); c.classList.add('ok'); S.linhas[i].zok = true;
+      c.querySelector('.feito').textContent = 'Confirmado zero';
+      btn.disabled = false; atualizarTopo(); aviso('Confirmado zero','bom',1500); proximo(i);
+    }).catch(function(){ btn.disabled = false; aviso('NÃO salvou. Toque de novo','erro',5000); });
+  }
+
+  /* ---------- Voz na observacao (quando o aparelho permite) ---------- */
+  var rec = null;
+  function ditar(btn){
+    var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if(!SR){ aviso('Este aparelho não aceita voz. Digite a observação','erro',2800); return; }
+    if(rec){ try{ rec.stop(); }catch(e){} rec = null; return; }
+    var ta = btn.parentNode.querySelector('textarea');
+    rec = new SR(); rec.lang = 'pt-BR'; rec.interimResults = false;
+    rec.onresult = function(e){ var t = ''; for(var k=e.resultIndex;k<e.results.length;k++) t += e.results[k][0].transcript; ta.value = (ta.value? ta.value+' ' : '') + t.trim(); };
+    rec.onend = function(){ btn.classList.remove('gravando'); btn.textContent = 'Voz'; rec = null; };
+    rec.onerror = function(){ btn.classList.remove('gravando'); btn.textContent = 'Voz'; rec = null; };
+    btn.classList.add('gravando'); btn.textContent = 'Parar';
+    try{ rec.start(); }catch(e){ rec = null; btn.classList.remove('gravando'); btn.textContent = 'Voz'; }
+  }
+
+  entrada();
+})();
+</script>
+</body>
+</html>
