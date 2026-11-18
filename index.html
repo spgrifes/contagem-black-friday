@@ -222,7 +222,7 @@ input.texto:focus,textarea:focus,.grade input:focus{outline:3px solid var(--dour
     var q=$('#bbus').value.trim(); if(q.length<2){ aviso('Digite pelo menos 2 letras','erro',2200); return; }
     $('#bres').innerHTML='<p class="vazio">Procurando...</p>';
     chamar('baixa_buscar',{q:q}).then(function(r){
-      SB.achados=r.linhas||[]; SB.fb=r.foto_base||'';
+      SB.achados=ordenar(r.linhas); SB.fb=r.foto_base||'';
       var h=''; if(!SB.achados.length) h='<p class="vazio">Não achei. Tente outra palavra.</p>';
       SB.achados.forEach(function(l,i){
         var foto = l.f ? '<img class="foto" alt="" src="'+esc(SB.fb+encodeURIComponent(l.f))+'" loading="lazy">' : '<div class="foto">sem foto</div>';
@@ -269,7 +269,7 @@ input.texto:focus,textarea:focus,.grade input:focus{outline:3px solid var(--dour
     S.modo = modo;
     app.innerHTML = '<div class="caixa"><p class="vazio">Carregando produtos...</p></div>';
     chamar('lista',{modo:modo, setor:S.setor}).then(function(r){
-      S.linhas = r.linhas || []; S.fb = r.foto_base || ''; tela();
+      S.linhas = ordenar(r.linhas); S.fb = r.foto_base || ''; tela();
     }).catch(function(){
       app.innerHTML = '<div class="caixa"><p class="vazio">Não consegui carregar.</p><button class="botao" id="tentar">Tentar de novo</button></div>';
       $('#tentar').onclick = function(){ carregar(modo); };
@@ -284,6 +284,8 @@ input.texto:focus,textarea:focus,.grade input:focus{outline:3px solid var(--dour
     var b = $('#prog'); if(b) b.style.width = (t? Math.round(f*100/t) : 0)+'%';
   }
 
+  function ordTam(n){ var x=String(n||'').toUpperCase().replace(/[\s.]/g,''); var o={'PP':0,'P':1,'M':2,'G':3,'GG':4,'XG':5,'EG':5,'EXG':5,'EXTRAG':5,'G1':5,'XXG':6,'EGG':6,'G2':6,'G3':7}; if(o[x]!=null) return o[x]; var m=x.match(/^\d+/); return m? 100+Number(m[0]) : 50; }
+  function ordenar(ls){ (ls||[]).forEach(function(l){ if(l.t) l.t.sort(function(a,b){ return ordTam(a.n)-ordTam(b.n); }); }); return ls||[]; }
   function tela(){
     var L = S.linhas, f = feitos();
     var h = '<div class="topo"><div class="linha1"><span class="marca">SP GRIFES</span><span class="quem">'+esc(S.eu)+' + '+esc(S.par)+(S.setor&&S.modo==='contar'?' · Setor '+S.setor:'')+'</span></div>'+
