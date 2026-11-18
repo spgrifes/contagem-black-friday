@@ -1,0 +1,13 @@
+<!doctype html><meta charset="utf-8"><title>receber</title><body style="font-family:sans-serif"><p id="r">aguardando...</p>
+<script>
+(async function(){
+  var r=document.getElementById('r');
+  try{
+    var j=JSON.parse(window.name||'{}'); window.name='';
+    if(!j.d||!j.t){ r.textContent='sem dados'; return; }
+    var b=await (await fetch(j.d)).blob();
+    var x=await fetch('https://cuiqmczhtcrrxafmzmhh.supabase.co/functions/v1/pagina-subir',{method:'POST',headers:{'x-token':j.t,'Content-Type':b.type},body:b});
+    r.textContent='RESULTADO '+x.status+' '+(await x.text());
+  }catch(e){ r.textContent='ERRO '+e.message; }
+})();
+</script>
