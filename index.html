@@ -258,6 +258,7 @@ input.texto:focus,textarea:focus,.grade input:focus{outline:3px solid var(--dour
     var h = '<div class="topo"><div class="linha1"><span class="marca">SP GRIFES</span><span class="quem">'+esc(S.eu)+' + '+esc(S.par)+'</span></div></div><div class="caixa">'+
       '<h2>Escolha o seu setor</h2><p class="dica">Cada dupla pega um setor diferente. Combine com a equipe antes de tocar.</p>';
     for(var s=1;s<=4;s++){ h += '<button class="setor" data-s="'+s+'">Setor '+s+'<span>'+(S.setores[s]||0)+' produtos</span></button>'; }
+    h += '<button class="setor" data-s="5" style="border-color:#c0392b">Reconferência<span>só depois, quando mandarem (conferir diferenças grandes)</span></button>';
     h += '<button class="setor" data-s="0" style="border-color:#bbb">Ver todos<span>sem filtro</span></button><button class="link" id="svolta">Voltar</button></div>';
     app.innerHTML = h;
     $('#svolta').onclick = inicio;
@@ -288,7 +289,7 @@ input.texto:focus,textarea:focus,.grade input:focus{outline:3px solid var(--dour
   function ordenar(ls){ (ls||[]).forEach(function(l){ if(l.t) l.t.sort(function(a,b){ return ordTam(a.n)-ordTam(b.n); }); }); return ls||[]; }
   function tela(){
     var L = S.linhas, f = feitos();
-    var h = '<div class="topo"><div class="linha1"><span class="marca">SP GRIFES</span><span class="quem">'+esc(S.eu)+' + '+esc(S.par)+(S.setor&&S.modo==='contar'?' · Setor '+S.setor:'')+'</span></div>'+
+    var h = '<div class="topo"><div class="linha1"><span class="marca">SP GRIFES</span><span class="quem">'+esc(S.eu)+' + '+esc(S.par)+(S.setor&&S.modo==='contar'?(S.setor===5?' · Reconferência':' · Setor '+S.setor):'')+'</span></div>'+
       '<div class="barra"><i id="prog" style="width:'+(L.length?Math.round(f*100/L.length):0)+'%"></i></div><div class="contador" id="cont"><b>'+f+'</b> de '+L.length+' contados</div></div>'+
       '<div class="abas">'+
       ab('contar','Contar')+ab('zerados','Zerados')+ab('inativos','Inativos')+'<button id="trocar">Setor</button></div><div class="caixa">';
